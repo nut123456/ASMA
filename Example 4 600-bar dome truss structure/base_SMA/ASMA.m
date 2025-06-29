@@ -1,11 +1,10 @@
-% Artemisinin slime mold algorithm (ASMA)
+%Artemisinin slime mold algorithm (ASMA)
 % Author and programmer: 
 % Mr. Arnut Sutha
 % Center of Excellence in Applied Mechanics and Structures, Department of Civil Engineering, Chulalongkorn University, 10330 Bangkok, Thailand
 % e-mail:       mynut2009@gmail.com
 % Researchgate: https://www.researchgate.net/profile/Arnut_Sutha
-%_____________________________________________________________________________________________________           
-
+%_____________________________________________________________________________________________________    
 function [bestfitness,Leader_pos,Convergence_curve]=ASMA(N,MaxFEs,lb,ub,dim,fobj) %SMA(N,Max_iter,lb,ub,dim,fobj)
 % Initialization parameters
 FEs=0;
@@ -28,6 +27,7 @@ Convergence_curve=[];
 best=pop(x,:);
 bestfitness=fmin;
 time_per_iteration = zeros(1, MaxFEs); % Preallocate array for time per iteration
+delta_threshold = 1e-4; % δ^t
 %% Main loop
 while FEs<=MaxFEs
     tic; % Start timer for iteration  
@@ -46,7 +46,7 @@ while FEs<=MaxFEs
         end
     end
     K= 1-((FEs)^(1/6)/(MaxFEs)^(1/6));
-    E=1*exp(-4*(FEs/MaxFEs));
+    E=1*exp(-4*(FEs/MaxFEs)^(1/2));
     a = 1;
     b = 0.003;
     % c = 0.05;
@@ -61,12 +61,13 @@ while FEs<=MaxFEs
         for j=1:dim
             if rand<K
                 if rand<0.5
-                    New_pop(i,j) = pop(i,j)+E.*pop(i,j)*(-1)^FEs;
+                    New_pop(i,j) = pop(j,j) + E .* sin((2*pi)*rand()) * pop(i,j) * (-1)^FEs;
                 else
-                    New_pop(i,j) = pop(i,j)+E.*best(j)*(-1)^FEs;
+                    New_pop(i,j) = pop(i,j) + E .* cos((2*pi)*rand()) * best(j) * (-1)^FEs;
                 end
             else
-                New_pop(i,j)=pop(i,j);
+               New_pop(i,j)=pop(i,j);
+                % New_pop(i,j) = (ub-lb)*rand+lb;
             end
             if rand<Fitnorm(i)                
                 AA=randperm(N);   %randperm(N) สุ่มเรียงลำดับตัวเลขทั้งหมดจาก 1 ถึง N โดยไม่ซ้ำ.
@@ -104,8 +105,17 @@ while FEs<=MaxFEs
     Convergence_curve(it)=bestfitness;
     Leader_pos=best;
     time_per_iteration(it) = toc; % End timer and record elapsed time
-    %disp(['Iteration ' num2str(it) ':   Best Cost = ' num2str(Convergence_curve(it)) ': Time =' num2str(time_per_iteration(it)) ]);
- 
+    disp(['Iteration ' num2str(it) ':   Best Cost(ASMA) = ' num2str(Convergence_curve(it)) ': Time =' num2str(time_per_iteration(it)) ]);
+    
+    %% Relative difference convergence check
+    P_best = min(Fitness);        % Best penalized fitness
+    P_mean = mean(Fitness);       % Mean penalized fitness
+    delta = abs((P_mean - P_best)/P_best);  % Eq. (21)
+    if delta < delta_threshold
+        disp(['Terminated due to convergence: delta = ' num2str(delta) ', threshold = ' num2str(delta_threshold)]);
+        break;
+    end
+
     it=it+1;
 end
 disp(['Time(s) = ' num2str(sum(time_per_iteration))]);
