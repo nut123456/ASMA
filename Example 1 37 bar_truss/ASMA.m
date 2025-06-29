@@ -145,7 +145,7 @@ end
 
 function z=Transborder_reset(z,ub,lb,dim,best)
     for j=1:dim
-        if z(j) > ub || z(j) < lb
+        if z(j) > ub(j) || z(j) < lb(j)
             z(j) = best(j);
         end
     end
